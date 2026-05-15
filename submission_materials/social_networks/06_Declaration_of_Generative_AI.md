@@ -1,0 +1,3 @@
+# Declaration of Generative AI and AI-Assisted Technologies in the Manuscript Preparation Process
+
+During the preparation of this work, the authors used generative AI and AI-assisted tools to support drafting, revision, language refinement, code development, and manuscript organization. Large language models were also used as part of the research design, as described in the Methods section, where LLM agents served as transmission nodes and semantic coders. After using these tools, the authors reviewed, verified, edited, and approved the content and take full responsibility for the content of the article.

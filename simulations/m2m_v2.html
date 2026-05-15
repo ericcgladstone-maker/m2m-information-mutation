@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2M Information Mutation V2 — Extended Exploration</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --bg:      #0b0d10;
+  --surface: #131618;
+  --sur2:    #1a1d22;
+  --border:  #222830;
+  --bord2:   #2e3540;
+  --accent:  #5be4a0;
+  --red:     #e45b5b;
+  --blue:    #5b9be4;
+  --amber:   #e4b45b;
+  --violet:  #a78bfa;
+  --text:    #c8d4e0;
+  --muted:   #4a5568;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;overflow:hidden}
+
+header{border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:baseline;gap:12px;height:42px}
+header h1{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
+header .sub{font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+.app{display:grid;grid-template-columns:280px 1fr 300px;height:calc(100vh - 42px)}
+
+/* LEFT */
+.left{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.panel-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.ptab{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none}
+.ptab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.left-body{flex:1;overflow-y:auto;padding:14px}
+
+.sec-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;margin-top:4px}
+.divider{border-top:1px solid var(--border);margin:14px 0}
+.field{margin-bottom:12px}
+.field label{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:4px}
+.val{color:var(--accent)}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.field input[type=text],.field input[type=password],.field select,.field textarea{width:100%;background:var(--sur2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;border-radius:3px;outline:none}
+.field textarea{resize:vertical;min-height:60px}
+.field .desc{font-size:10px;color:var(--muted);margin-top:3px}
+.field select option{background:var(--sur2)}
+
+.chk-group{display:flex;flex-direction:column;gap:4px}
+.chk-row{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text)}
+.chk-row input[type=checkbox]{accent-color:var(--accent);width:12px;height:12px}
+
+.btn-row{display:flex;gap:6px;margin-top:4px}
+.btn{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:7px 12px;cursor:pointer;border-radius:3px;border:1px solid;transition:all .15s}
+.btn-go{background:transparent;border-color:var(--accent);color:var(--accent)}
+.btn-go:hover:not(:disabled){background:var(--accent);color:var(--bg)}
+.btn-stop{background:transparent;border-color:var(--red);color:var(--red)}
+.btn-exp{background:transparent;border-color:var(--amber);color:var(--amber)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-sm{padding:4px 8px;font-size:9px}
+
+.seed-row{display:flex;gap:4px;margin-bottom:4px;align-items:center}
+.seed-row input{flex:1;font-size:10px;padding:4px 6px}
+.seed-row button{background:var(--sur2);border:1px solid var(--border);color:var(--muted);font-size:10px;padding:4px 7px;cursor:pointer;border-radius:2px}
+.seed-row button:hover{color:var(--red)}
+
+/* topology badge colors */
+.topo-linear   {color:var(--accent)}
+.topo-hub      {color:var(--blue)}
+.topo-lattice  {color:var(--amber)}
+.topo-bilattice{color:var(--violet)}
+.topo-hierarchy{color:#f97316}
+.topo-ring     {color:#ec4899}
+
+/* MAIN */
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.vtabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.vtab{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:8px 14px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none}
+.vtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.vpane{display:none;flex:1;overflow-y:auto;padding:16px}
+.vpane.active{display:block}
+
+/* chain view */
+.chain-node{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin-bottom:8px;display:grid;grid-template-columns:70px 1fr auto}
+.chain-node.seed{border-color:var(--bord2)}
+.node-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.node-text{font-size:12px;line-height:1.5;padding:0 10px}
+.node-scores{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:60px}
+.score-num{font-family:var(--mono);font-size:14px;font-weight:600}
+.score-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-align:right}
+.s-hi{color:var(--accent)} .s-mid{color:var(--amber)} .s-lo{color:var(--red)}
+
+/* sweep results */
+.cond-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:8px}
+.cond-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cond-title{font-family:var(--mono);font-size:11px;font-weight:600}
+.cond-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cstat{background:var(--sur2);padding:6px 8px;border-radius:3px}
+.cstat-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase}
+.cstat-val{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
+
+/* progress */
+.prog-bar{background:var(--sur2);height:3px;border-radius:2px;overflow:hidden;margin-bottom:8px}
+.prog-fill{background:var(--accent);height:100%;transition:width .3s}
+.prog-label{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:10px}
+
+/* RIGHT */
+.right{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.right-head{padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);flex-shrink:0}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.stat-box{background:var(--surface);padding:8px 10px;border-radius:3px}
+.stat-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.stat-val{font-family:var(--mono);font-size:15px;color:var(--accent);font-weight:600}
+.stat-val.red{color:var(--red)}
+
+.heatmap-wrap{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.heatmap-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.heatmap{display:flex;gap:2px;flex-wrap:wrap}
+.hm-cell{width:16px;height:16px;border-radius:2px;font-family:var(--mono);font-size:7px;display:flex;align-items:center;justify-content:center;color:rgba(0,0,0,.7)}
+
+.log-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.log-box{flex:1;overflow-y:auto;padding:10px 14px;font-family:var(--mono);font-size:10px;line-height:1.6}
+.log-ok{color:var(--accent)} .log-err{color:var(--red)} .log-warn{color:var(--amber)} .log-info{color:var(--blue)}
+
+/* raw table */
+.raw-table-wrap{overflow:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:10px}
+th{background:var(--sur2);color:var(--muted);padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+td{padding:4px 8px;border-bottom:1px solid rgba(34,40,48,.5);color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{background:rgba(255,255,255,.02)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>M2M Information Mutation V2 — Extended Exploration</h1>
+  <span class="sub">Active mediation only · 5 reps · All 7 seeds · English + Pidgin</span>
+</header>
+
+<div class="app">
+
+<!-- ══════════════════════ LEFT PANEL ══════════════════════ -->
+<div class="left">
+  <div class="panel-tabs">
+    <button class="ptab active" onclick="switchPanel('setup',this)">Setup</button>
+    <button class="ptab" onclick="switchPanel('sweep',this)">Sweep</button>
+  </div>
+
+  <!-- SETUP TAB -->
+  <div class="left-body" id="panel-setup">
+    <div class="sec-label">API</div>
+    <div class="field">
+      <label>Anthropic API key</label>
+      <input type="password" id="api-key" placeholder="sk-ant-...">
+    </div>
+    <div class="field">
+      <label>Transmission model (baseline)</label>
+      <select id="tx-model">
+        <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+        <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+      </select>
+      <div class="desc">Used at all nodes except high-authority positions.</div>
+    </div>
+    <div class="field">
+      <label>High-authority model</label>
+      <select id="auth-model">
+        <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+        <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+      </select>
+      <div class="desc">Used at designated high-authority nodes.</div>
+    </div>
+    <div class="field">
+      <label>Coder model</label>
+      <select id="coder-model">
+        <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+        <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+      </select>
+    </div>
+
+    <div class="divider"></div>
+    <div class="sec-label">Coder settings</div>
+    <div class="field">
+      <label>Coder temperature <span class="val" id="lbl-cod-temp">0.10</span></label>
+      <input type="range" id="cod-temp" min="0" max="0.5" step="0.05" value="0.1"
+             oninput="document.getElementById('lbl-cod-temp').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+    <div class="field">
+      <label>Coder repeats per pair <span class="val" id="lbl-cod-reps">1</span></label>
+      <input type="range" id="cod-reps" min="1" max="5" step="1" value="1"
+             oninput="document.getElementById('lbl-cod-reps').textContent=this.value">
+    </div>
+
+    <div class="divider"></div>
+    <div class="sec-label">Mediation settings</div>
+    <div class="field">
+      <label>Active mediation temperature <span class="val" id="lbl-tx-temp">0.70</span></label>
+      <input type="range" id="tx-temp" min="0" max="1" step="0.05" value="0.7"
+             oninput="document.getElementById('lbl-tx-temp').textContent=parseFloat(this.value).toFixed(2)">
+      <div class="desc">Paraphrase temperature. 0.7 produces good diversification.</div>
+    </div>
+    <div class="field">
+      <label>Bidirectional lattice rounds <span class="val" id="lbl-bi-rounds">3</span></label>
+      <input type="range" id="bi-rounds" min="1" max="5" step="1" value="3"
+             oninput="document.getElementById('lbl-bi-rounds').textContent=this.value">
+      <div class="desc">Max back-communication rounds before output is finalized.</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="sec-label">Single run</div>
+    <div class="field">
+      <label>Seed sentence</label>
+      <textarea id="single-seed" rows="3">A 2024 audit of the regional supply chain identified 14 critical vulnerabilities across three distribution hubs, with the highest concentration in cold storage facilities operating below the mandated 34-degree Fahrenheit threshold. The audit estimated that unaddressed vulnerabilities would increase spoilage losses by approximately 23 percent annually, at a projected cost of $4.2 million to the consortium.</textarea>
+    </div>
+    <div class="field">
+      <label>Topology</label>
+      <select id="single-topo">
+        <option value="linear">Linear chain</option>
+        <option value="hub">Hub-and-spoke</option>
+        <option value="lattice">Lattice</option>
+        <option value="bilattice">Bidirectional lattice</option>
+        <option value="hierarchy">Directed hierarchy</option>
+        <option value="ring">Ring with shortcuts</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Node type</label>
+      <select id="single-nodetype">
+        <option value="passive">Passive relay</option>
+        <option value="active">Active mediation</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Format</label>
+      <select id="single-format">
+        <option value="english">English (low entropy)</option>
+        <option value="pidgin">Text pidgin (high entropy)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Authority</label>
+      <select id="single-authority">
+        <option value="standard">Standard (matched)</option>
+        <option value="high">High-authority (hub / hierarchy)</option>
+        <option value="implicit">Implicit authority (lattice / bilattice)</option>
+        <option value="declared">Declared authority (lattice / bilattice)</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-go" onclick="runSingle()" id="btn-single">▶ Run</button>
+      <button class="btn btn-sm" style="border-color:var(--muted);color:var(--muted)" onclick="clearSingle()">Clear</button>
+    </div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="btn btn-exp btn-sm" onclick="exportSingleCSV()" id="btn-single-export" disabled>⬇ Single CSV</button>
+    </div>
+  </div>
+
+  <!-- SWEEP TAB -->
+  <div class="left-body" id="panel-sweep" style="display:none">
+    <div class="sec-label">Topologies</div>
+    <div class="chk-group" style="margin-bottom:12px">
+      <label class="chk-row"><input type="checkbox" id="topo-linear" checked><span class="topo-linear">Linear chain</span></label>
+      <label class="chk-row"><input type="checkbox" id="topo-hub" checked><span class="topo-hub">Hub-and-spoke</span></label>
+      <label class="chk-row"><input type="checkbox" id="topo-lattice" checked><span class="topo-lattice">Lattice</span></label>
+      <label class="chk-row"><input type="checkbox" id="topo-bilattice" checked><span class="topo-bilattice">Bidirectional lattice</span></label>
+      <label class="chk-row"><input type="checkbox" id="topo-hierarchy" checked><span class="topo-hierarchy">Directed hierarchy</span></label>
+      <label class="chk-row"><input type="checkbox" id="topo-ring" checked><span class="topo-ring">Ring with shortcuts</span></label>
+    </div>
+
+    <div class="sec-label">Conditions</div>
+    <div class="field">
+      <label>Node type</label>
+      <div class="chk-group">
+        <label class="chk-row"><input type="checkbox" id="cond-passive">Passive relay</label>
+        <label class="chk-row"><input type="checkbox" id="cond-active" checked>Active mediation</label>
+
+      </div>
+    </div>
+    <div class="field">
+      <label>Message format</label>
+      <div class="chk-group">
+        <label class="chk-row"><input type="checkbox" id="cond-english" checked>English</label>
+        <label class="chk-row"><input type="checkbox" id="cond-pidgin" checked>Pidgin</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>Authority conditions</label>
+      <div class="chk-group">
+        <label class="chk-row"><input type="checkbox" id="cond-auth-std" checked>Standard (matched)</label>
+        <label class="chk-row"><input type="checkbox" id="cond-auth-hi" checked>High-authority (hub / hierarchy)</label>
+        <label class="chk-row"><input type="checkbox" id="cond-auth-implicit" checked>Implicit authority (lattice / bilattice)</label>
+        <label class="chk-row"><input type="checkbox" id="cond-auth-declared" checked>Declared authority (lattice / bilattice)</label>
+      </div>
+      <div class="desc">Hub/hierarchy: standard vs high-capability model (positional). Lattice/bilattice: standard vs implicit (quality-only, no signal) vs declared (explicit capability signal to synthesis node).</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="field">
+      <label>Replications per cell <span class="val" id="lbl-reps">5</span></label>
+      <input type="range" id="sweep-reps" min="1" max="20" step="1" value="5"
+             oninput="document.getElementById('lbl-reps').textContent=this.value">
+    </div>
+    <div class="field">
+      <label>Retry delay on overload (sec) <span class="val" id="lbl-retry">8</span></label>
+      <input type="range" id="retry-delay" min="2" max="30" step="1" value="8"
+             oninput="document.getElementById('lbl-retry').textContent=this.value">
+      <div class="desc">Exponential backoff on API overload errors.</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="sec-label">Seed sentences</div>
+    <div id="seed-list"></div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="btn btn-sm btn-go" onclick="addSeed('')">+ Seed</button>
+      <button class="btn btn-sm" style="border-color:var(--muted);color:var(--muted)" onclick="loadDefaultSeeds()">Load defaults</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="btn-row">
+      <button class="btn btn-go" onclick="runSweep()" id="btn-sweep">▶ Run sweep</button>
+      <button class="btn btn-stop" onclick="stopSweep()" id="btn-stop" disabled>■ Stop</button>
+    </div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="btn btn-exp" onclick="exportCSV()" id="btn-export" disabled>⬇ CSV</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ MAIN PANEL ══════════════════════ -->
+<div class="main">
+  <div class="vtabs">
+    <button class="vtab active" onclick="switchVTab('chain',this)">Chain view</button>
+    <button class="vtab" onclick="switchVTab('results',this)">Sweep results</button>
+    <button class="vtab" onclick="switchVTab('raw',this)">Raw data</button>
+  </div>
+
+  <div class="vpane active" id="pane-chain">
+    <div id="chain-view" style="color:var(--muted);font-family:var(--mono);font-size:11px;padding:20px;text-align:center">
+      Configure a run in Setup and press ▶ Run
+    </div>
+  </div>
+
+  <div class="vpane" id="pane-results">
+    <div class="prog-bar"><div class="prog-fill" id="sweep-progress" style="width:0%"></div></div>
+    <div class="prog-label" id="sweep-status">No sweep running.</div>
+    <div id="sweep-table-wrap"></div>
+  </div>
+
+  <div class="vpane" id="pane-raw">
+    <div class="raw-table-wrap" id="raw-table-wrap">
+      <div style="color:var(--muted);font-family:var(--mono);font-size:11px;padding:20px">No data yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ RIGHT PANEL ══════════════════════ -->
+<div class="right">
+  <div class="right-head">Run statistics</div>
+  <div class="stats-grid">
+    <div class="stat-box"><div class="stat-lbl">Topology</div><div class="stat-val" id="stat-topo" style="font-size:11px">—</div></div>
+    <div class="stat-box"><div class="stat-lbl">Condition</div><div class="stat-val" id="stat-cond" style="font-size:11px">—</div></div>
+    <div class="stat-box"><div class="stat-lbl">Consec. fidelity</div><div class="stat-val" id="stat-consec">—</div></div>
+    <div class="stat-box"><div class="stat-lbl">Evol. fidelity</div><div class="stat-val" id="stat-evol">—</div></div>
+    <div class="stat-box"><div class="stat-lbl">Mean consec.</div><div class="stat-val" id="stat-mean-consec">—</div></div>
+    <div class="stat-box"><div class="stat-lbl">Mean evol.</div><div class="stat-val" id="stat-mean-evol">—</div></div>
+    <div class="stat-box"><div class="stat-lbl">API calls</div><div class="stat-val" id="stat-api">0</div></div>
+    <div class="stat-box"><div class="stat-lbl">Chains run</div><div class="stat-val" id="stat-chains">0</div></div>
+  </div>
+
+  <div class="heatmap-wrap">
+    <div class="heatmap-lbl">Evolutionary fidelity by hop</div>
+    <div class="heatmap" id="heatmap"></div>
+  </div>
+
+  <div class="log-wrap">
+    <div class="right-head" style="border-top:1px solid var(--border)">Log</div>
+    <div class="log-box" id="log-box"></div>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<script>
+// ═══════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════
+
+const MODELS = {
+  baseline: () => document.getElementById('tx-model').value,
+  authority: () => document.getElementById('auth-model').value,
+  coder:    () => document.getElementById('coder-model').value,
+};
+
+// Seven study seeds (Gladstone & Brashears, manuscript)
+// Seeds 1-6: organizational content categories
+// Seed 7: Bartlett (1932) War of the Ghosts — exploratory Bartlett bridge
+const BARTLETT_SEED = `One night two young men from Egulac went down to the river to hunt seals. They heard war-cries and a canoe with five warriors appeared. One young man agreed to join the fight though he could not understand why. In the battle he was not hurt, though many died around him. Later he told the people of Egulac what had happened. When the sun rose he fell down, and something black came out of his mouth. He was dead.`;
+
+const DEFAULT_SEEDS = [
+  `A 2024 audit of the regional supply chain identified 14 critical vulnerabilities across three distribution hubs, with the highest concentration in cold storage facilities operating below the mandated 34-degree Fahrenheit threshold. The audit estimated that unaddressed vulnerabilities would increase spoilage losses by approximately 23 percent annually, at a projected cost of $4.2 million to the consortium.`,
+  `The ethics review committee concluded that the proposed clinical trial protocol presents unacceptable risks to vulnerable populations and should not proceed without substantial revision. The committee noted particular concern about the inadequacy of the informed consent procedures and the absence of independent safety monitoring, both of which fall below established standards for research involving older adult participants with mild cognitive decline.`,
+  `When the lead researcher noticed the anomalous readings at 11:47 PM on a Tuesday, she initially attributed them to sensor calibration drift. It was only after cross-referencing three weeks of archived data that the pattern became clear: the facility had been leaking trace amounts of a regulated compound into the groundwater since the previous March, undetected by the automated monitoring system.`,
+  `To initiate the data recovery protocol, the on-call engineer must first isolate the affected partition by disabling write access, then notify the security team before attempting any restoration. Recovery should proceed only from backups created within the previous 72 hours, and all actions must be logged in the incident management system before the engineer completes the incident record.`,
+  `Between January and September of last year, the three largest hospital networks in the region reported a combined 340 cases of a rare post-surgical complication, representing a 280 percent increase over the same period the prior year. Investigators tracing the pattern eventually identified a common thread: all affected patients had received a specific lot of surgical mesh manufactured by a single supplier, which had passed all required quality inspections.`,
+  `The board's policy requires that any AI-generated recommendation affecting more than 500 employees must be reviewed by at least two senior managers before implementation, and that the reviewing managers must document their independent assessments before comparing notes. This requirement exists specifically to prevent anchoring effects in high-stakes decisions, and exceptions may be granted only by the chief executive with written justification.`,
+  BARTLETT_SEED
+];
+
+// Topology node-count specs per manuscript
+// All equalized to 11 total nodes
+const TOPO_SPECS = {
+  linear:    { label: 'Linear chain',          class: 'topo-linear',    nodes: 11 },
+  hub:       { label: 'Hub-and-spoke',          class: 'topo-hub',       nodes: 11 },
+  lattice:   { label: 'Lattice',               class: 'topo-lattice',   nodes: 11 },
+  bilattice: { label: 'Bidirectional lattice', class: 'topo-bilattice', nodes: 11 },
+  hierarchy: { label: 'Directed hierarchy',    class: 'topo-hierarchy', nodes: 11 },
+  ring:      { label: 'Ring w/ shortcuts',     class: 'topo-ring',      nodes: 11 },
+};
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let apiCallCount = 0;
+let chainCount   = 0;
+let rawData      = [];
+let singleRawData = [];
+let sweepRunning = false;
+let sweepStop    = false;
+let runCounter   = 0;
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function mean(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function sd(arr) {
+  if (arr.length < 2) return 0;
+  const m = mean(arr);
+  return Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/(arr.length-1));
+}
+function scoreClass(s) {
+  if (s === null || s === undefined) return '';
+  return s >= 75 ? 's-hi' : s >= 45 ? 's-mid' : 's-lo';
+}
+function hmColor(v) {
+  if (v === null) return '#1a1d22';
+  const r = Math.round(91  + (228-91) *(1-v/100));
+  const g = Math.round(228 + (91-228) *(1-v/100));
+  const b = Math.round(160 + (91-160) *(1-v/100));
+  return `rgb(${r},${g},${b})`;
+}
+
+function log(msg, type='') {
+  const el = document.getElementById('log-box');
+  const d  = document.createElement('div');
+  d.className = type ? 'log-'+type : '';
+  d.textContent = new Date().toTimeString().slice(0,8)+' '+msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+  if (el.children.length > 120) el.removeChild(el.firstChild);
+}
+
+function updateStats(topo, cond, consec, evol, meanC, meanE) {
+  if (topo) document.getElementById('stat-topo').textContent = TOPO_SPECS[topo]?.label || topo;
+  if (cond) document.getElementById('stat-cond').textContent = cond;
+  if (consec !== undefined) {
+    const el = document.getElementById('stat-consec');
+    el.textContent = consec ?? '—';
+    el.className = 'stat-val ' + (consec < 60 ? 'red' : '');
+  }
+  if (evol !== undefined) {
+    const el = document.getElementById('stat-evol');
+    el.textContent = evol ?? '—';
+    el.className = 'stat-val ' + (evol < 50 ? 'red' : '');
+  }
+  if (meanC !== undefined) document.getElementById('stat-mean-consec').textContent = meanC ?? '—';
+  if (meanE !== undefined) document.getElementById('stat-mean-evol').textContent   = meanE ?? '—';
+  document.getElementById('stat-api').textContent    = apiCallCount;
+  document.getElementById('stat-chains').textContent = chainCount;
+}
+
+function renderHeatmap(rows) {
+  const el = document.getElementById('heatmap');
+  el.innerHTML = '';
+  rows.forEach(row => {
+    row.forEach(v => {
+      const c = document.createElement('div');
+      c.className = 'hm-cell';
+      c.style.background = hmColor(v);
+      c.title = v !== null ? v : '—';
+      el.appendChild(c);
+    });
+  });
+}
+
+// ═══════════════════════════════════════
+// PANEL / TAB SWITCHING
+// ═══════════════════════════════════════
+function switchPanel(name, btn) {
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-setup').style.display = name==='setup' ? '' : 'none';
+  document.getElementById('panel-sweep').style.display = name==='sweep' ? '' : 'none';
+}
+function switchVTab(name, btn) {
+  document.querySelectorAll('.vtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.vpane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  if (name==='raw') renderRawTable();
+}
+function switchVTabByName(name) {
+  const tabs = document.querySelectorAll('.vtab');
+  const panes = document.querySelectorAll('.vpane');
+  const names = ['chain','results','raw'];
+  const i = names.indexOf(name);
+  if (i < 0) return;
+  tabs.forEach((t,j)=>t.classList.toggle('active',j===i));
+  panes.forEach((p,j)=>p.classList.toggle('active',j===i));
+  if (name==='raw') renderRawTable();
+}
+
+// ═══════════════════════════════════════
+// SEEDS
+// ═══════════════════════════════════════
+function addSeed(val) {
+  const row = document.createElement('div');
+  row.className = 'seed-row';
+  row.innerHTML = `<input type="text" value="${val.replace(/"/g,'&quot;')}" placeholder="Seed sentence...">
+    <button onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('seed-list').appendChild(row);
+}
+function loadDefaultSeeds() {
+  document.getElementById('seed-list').innerHTML = '';
+  DEFAULT_SEEDS.forEach(s => addSeed(s));
+}
+function getSeeds() {
+  return Array.from(document.querySelectorAll('#seed-list input')).map(i=>i.value.trim()).filter(Boolean);
+}
+function getApiKey() { return document.getElementById('api-key').value.trim(); }
+
+// ═══════════════════════════════════════
+// API WITH RETRY
+// ═══════════════════════════════════════
+async function callAPI(model, prompt, temperature, retries=4) {
+  const key = getApiKey();
+  if (!key) throw new Error('No API key');
+
+  for (let attempt=0; attempt<=retries; attempt++) {
+    try {
+      apiCallCount++;
+      document.getElementById('stat-api').textContent = apiCallCount;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model, max_tokens: 500, temperature,
+          messages: [{ role: 'user', content: prompt }] })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        const msg = err.error?.message || `HTTP ${res.status}`;
+        if ((res.status === 529 || msg.toLowerCase().includes('overload')) && attempt < retries) {
+          const delay = parseInt(document.getElementById('retry-delay').value) * 1000 * (attempt+1);
+          log(`Overloaded — retry ${attempt+1}/${retries} in ${delay/1000}s`, 'warn');
+          await new Promise(r=>setTimeout(r,delay));
+          apiCallCount--; // don't count failed calls
+          document.getElementById('stat-api').textContent = apiCallCount;
+          continue;
+        }
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      return data.content[0].text.trim();
+    } catch(e) {
+      const isNetwork = e instanceof TypeError && e.message.toLowerCase().includes('fetch');
+      const isOverload = e.message.toLowerCase().includes('overload');
+      if (attempt < retries && (isNetwork || isOverload)) {
+        const delay = parseInt(document.getElementById('retry-delay').value) * 1000 * (attempt+1);
+        log(`Network error — retry ${attempt+1}/${retries} in ${delay/1000}s`, 'warn');
+        await new Promise(r=>setTimeout(r,delay));
+        apiCallCount--;
+        document.getElementById('stat-api').textContent = apiCallCount;
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+// ═══════════════════════════════════════
+// PROMPTS
+// ═══════════════════════════════════════
+function fmtInstr(format) {
+  return format === 'english'
+    ? 'Use standard written English.'
+    : 'Use text messaging shorthand — abbreviations, numbers for words, omit vowels where natural.';
+}
+
+function passivePrompt(text, format) {
+  return `You are a relay node in an information network. Reproduce the following message as accurately as possible. ${fmtInstr(format)}\n\nMessage: "${text}"\n\nRespond with only the message, nothing else.`;
+}
+
+function activePrompt(text, format) {
+  return `You are processing a message in an information network. Read the following message and rewrite it to accurately capture its meaning. ${fmtInstr(format)}\n\nMessage: "${text}"\n\nRespond with only your rewritten version, nothing else.`;
+}
+
+function synthesisPrompt(textA, textB, format, authorityNote='') {
+  return `You are a synthesis node in an information network. You have received two versions of a message from parallel channels. Produce a single unified message that best captures the accurate combined meaning.${authorityNote ? '\n\n'+authorityNote : ''} ${fmtInstr(format)}\n\nVersion A: "${textA}"\nVersion B: "${textB}"\n\nRespond with only your synthesized message, nothing else.`;
+}
+
+function revisionPrompt(draft, feedback, format) {
+  return `You are refining a message based on feedback from a peer node. Revise your draft to address the feedback while preserving accuracy. ${fmtInstr(format)}\n\nYour draft: "${draft}"\nPeer feedback: "${feedback}"\n\nRespond with only your revised message, nothing else.`;
+}
+
+function feedbackPrompt(text, original) {
+  return `You are reviewing a message that was derived from an original. Provide one sentence of constructive feedback on what meaning may have been lost or changed.\n\nDerived message: "${text}"\nOriginal: "${original}"\n\nRespond with only your one-sentence feedback.`;
+}
+
+// ═══════════════════════════════════════
+// TRANSMISSION — single node
+// ═══════════════════════════════════════
+async function transmitNode(text, format, nodeType, model) {
+  const temp = nodeType === 'active' ? parseFloat(document.getElementById('tx-temp').value) : 0.0;
+  const prompt = nodeType === 'active' ? activePrompt(text, format) : passivePrompt(text, format);
+  return await callAPI(model, prompt, temp);
+}
+
+// ═══════════════════════════════════════
+// TOPOLOGY RUNNERS
+// Each returns array of {hop, sentence, nodeLabel, isAuthority}
+// from seed to final output
+// ═══════════════════════════════════════
+
+// ── LINEAR CHAIN: 11 sequential nodes ──
+async function runLinear(seed, format, nodeType, authorityConfig) {
+  const steps = [];
+  let current = seed;
+  for (let i=1; i<=11; i++) {
+    const model = MODELS.baseline();
+    const out = await transmitNode(current, format, nodeType, model);
+    steps.push({ hop: i, sentence: out, nodeLabel: `Node ${i}`, isAuthority: false });
+    current = out;
+  }
+  return steps;
+}
+
+// ── HUB-AND-SPOKE: hub (node 1) + 10 spokes ──
+// Seed → hub → 10 parallel spoke nodes (each independently)
+// Returns hub output as the "chain" (spokes are parallel; we track hub + one spoke path)
+async function runHub(seed, format, nodeType, authorityConfig) {
+  const steps = [];
+  const isHighAuth = authorityConfig === 'high';
+  const hubModel = isHighAuth ? MODELS.authority() : MODELS.baseline();
+
+  // Hub processes the seed
+  const hubOut = await transmitNode(seed, format, nodeType, hubModel);
+  steps.push({ hop: 1, sentence: hubOut, nodeLabel: 'Hub', isAuthority: isHighAuth, parent: seed, chain_id: 'main' });
+
+  // Spokes each independently receive hub output (true hub-and-spoke: parallel fan-out)
+  for (let i=2; i<=11; i++) {
+    const out = await transmitNode(hubOut, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: out, nodeLabel: `Spoke ${i-1}`, isAuthority: false, parent: hubOut, chain_id: `spoke${i-1}` });
+  }
+  return steps;
+}
+
+// ── LATTICE: two parallel chains of 5 → synthesis → 5 more ──
+// Records every hop of both chains (A and B) so cross-chain divergence is measurable.
+// chain_id distinguishes A / B / main in the CSV.
+async function runLattice(seed, format, nodeType, authorityConfig) {
+  const steps = [];
+  // implicit = high-capability model on Chain A, no note to synthesis node (quality-only authority)
+  // declared = high-capability model on Chain A + explicit capability signal to synthesis node
+  const isHighAuth = authorityConfig === 'implicit' || authorityConfig === 'declared';
+
+  // Two parallel chains, each 5 nodes — record every hop of both
+  // Chain A uses authority model when isHighAuth; Chain B always uses baseline
+  let prevA = seed, prevB = seed;
+  for (let i=1; i<=5; i++) {
+    const outA = await transmitNode(prevA, format, nodeType, isHighAuth ? MODELS.authority() : MODELS.baseline());
+    const outB = await transmitNode(prevB, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: outA, nodeLabel: `Chain A-${i}`, isAuthority: isHighAuth, parent: prevA, chain_id: 'A' });
+    steps.push({ hop: i, sentence: outB, nodeLabel: `Chain B-${i}`, isAuthority: false, parent: prevB, chain_id: 'B' });
+    prevA = outA; prevB = outB;
+  }
+  const chainA = prevA, chainB = prevB;
+
+  // Synthesis node — declared adds explicit capability signal; implicit does not
+  const synthModel = MODELS.baseline();
+  const authNote = authorityConfig === 'declared' ? 'Note: Version A was processed by a higher-capability system.' : '';
+  const synthOut = await callAPI(synthModel, synthesisPrompt(chainA, chainB, format, authNote), 0.3);
+  steps.push({ hop: 6, sentence: synthOut, nodeLabel: 'Synthesis', isAuthority: isHighAuth, parent: chainA, chain_id: 'main' });
+
+  // Output chain (5 more nodes)
+  let current = synthOut;
+  for (let i=7; i<=11; i++) {
+    const out = await transmitNode(current, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: out, nodeLabel: `Post-synth ${i-6}`, isAuthority: false, parent: current, chain_id: 'main' });
+    current = out;
+  }
+  return steps;
+}
+
+// ── BIDIRECTIONAL LATTICE: same structure + back-communication rounds ──
+async function runBiLattice(seed, format, nodeType, authorityConfig) {
+  const steps = [];
+  // implicit = high-capability model on Chain A, no note to synthesis node (quality-only authority)
+  // declared = high-capability model on Chain A + explicit capability signal to synthesis node
+  const isHighAuth = authorityConfig === 'implicit' || authorityConfig === 'declared';
+  const maxRounds = parseInt(document.getElementById('bi-rounds').value);
+
+  // Two parallel chains, each 5 nodes — record every hop of both
+  // Chain A uses authority model when isHighAuth; Chain B always uses baseline
+  let prevA = seed, prevB = seed;
+  for (let i=1; i<=5; i++) {
+    const outA = await transmitNode(prevA, format, nodeType, isHighAuth ? MODELS.authority() : MODELS.baseline());
+    const outB = await transmitNode(prevB, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: outA, nodeLabel: `Chain A-${i}`, isAuthority: isHighAuth, parent: prevA, chain_id: 'A' });
+    steps.push({ hop: i, sentence: outB, nodeLabel: `Chain B-${i}`, isAuthority: false, parent: prevB, chain_id: 'B' });
+    prevA = outA; prevB = outB;
+  }
+  let chainA = prevA, chainB = prevB;
+
+  // Back-communication rounds
+  for (let round=1; round<=maxRounds; round++) {
+    const fbOnB = await callAPI(MODELS.baseline(), feedbackPrompt(chainB, seed), 0.3);
+    const fbOnA = await callAPI(MODELS.baseline(), feedbackPrompt(chainA, seed), 0.3);
+    chainA = await callAPI(MODELS.baseline(), revisionPrompt(chainA, fbOnB, format), 0.5);
+    chainB = await callAPI(MODELS.baseline(), revisionPrompt(chainB, fbOnA, format), 0.5);
+    log(`BiLattice round ${round}: revised both chains`, 'info');
+  }
+  // Record post-debate state of both chains
+  steps.push({ hop: 5.5, sentence: chainA, nodeLabel: 'Chain A (post-debate)', isAuthority: isHighAuth, parent: prevA, chain_id: 'A' });
+  steps.push({ hop: 5.5, sentence: chainB, nodeLabel: 'Chain B (post-debate)', isAuthority: false, parent: prevB, chain_id: 'B' });
+
+  // Synthesis node — declared adds explicit capability signal; implicit does not
+  const synthModel = MODELS.baseline();
+  const authNote = authorityConfig === 'declared' ? 'Note: Version A was processed by a higher-capability system.' : '';
+  const synthOut = await callAPI(synthModel, synthesisPrompt(chainA, chainB, format, authNote), 0.3);
+  steps.push({ hop: 6, sentence: synthOut, nodeLabel: 'Synthesis', isAuthority: isHighAuth, parent: chainA, chain_id: 'main' });
+
+  // Output chain
+  let current = synthOut;
+  for (let i=7; i<=11; i++) {
+    const out = await transmitNode(current, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: out, nodeLabel: `Post-synth ${i-6}`, isAuthority: false, parent: current, chain_id: 'main' });
+    current = out;
+  }
+  return steps;
+}
+
+// ── DIRECTED HIERARCHY: 3 upper → 5 mid → 3 lower ──
+// Upper tier processes seed → mid tier synthesizes upper outputs → lower tier processes
+async function runHierarchy(seed, format, nodeType, authorityConfig) {
+  const steps = [];
+  const isHighAuth = authorityConfig === 'high';
+  const upperModel = isHighAuth ? MODELS.authority() : MODELS.baseline();
+
+  // Upper tier: 3 nodes independently process seed (each parent = seed)
+  const upperOuts = [];
+  for (let i=1; i<=3; i++) {
+    const out = await transmitNode(seed, format, nodeType, upperModel);
+    upperOuts.push(out);
+    steps.push({ hop: i, sentence: out, nodeLabel: `Upper ${i}`, isAuthority: isHighAuth, parent: seed, chain_id: `upper${i}` });
+  }
+
+  // Mid tier: 5 nodes, each synthesizes two upper outputs (overlapping)
+  const midOuts = [];
+  const midPairs = [[0,1],[1,2],[0,2],[0,1],[1,2]];
+  for (let i=0; i<5; i++) {
+    const [a,b] = midPairs[i];
+    const out = await callAPI(MODELS.baseline(),
+      synthesisPrompt(upperOuts[a], upperOuts[b], format), 0.3);
+    midOuts.push(out);
+    steps.push({ hop: 4+i, sentence: out, nodeLabel: `Mid ${i+1}`, isAuthority: false, parent: upperOuts[a], chain_id: `mid${i+1}` });
+  }
+
+  // Lower tier: 3 nodes each process one mid output
+  const lowerIdx = [0, 2, 4];
+  for (let i=0; i<3; i++) {
+    const out = await transmitNode(midOuts[lowerIdx[i]], format, nodeType, MODELS.baseline());
+    steps.push({ hop: 9+i, sentence: out, nodeLabel: `Lower ${i+1}`, isAuthority: false, parent: midOuts[lowerIdx[i]], chain_id: `lower${i+1}` });
+  }
+
+  return steps;
+}
+
+// ── RING WITH SHORTCUTS: 11 nodes, 3 ring segments + 3 junction nodes ──
+// Structure: ring segments (nodes 1-3, 5-7, 9-10) + junctions (nodes 4, 8, 11)
+// At each junction, the ring-path output and a shortcut bypass are synthesized.
+// Shortcut bypasses each ring segment with a single direct hop from the prior junction (or seed).
+// This models a network where parallel short and long paths converge at synthesis points.
+//   Seed → [ring 1→2→3] → Junction A (node 4) ← shortcut from seed
+//          [ring 5→6→7] → Junction B (node 8) ← shortcut from Junction A
+//          [ring 9→10]  → Junction C (node 11) ← shortcut from Junction B
+async function runRing(seed, format, nodeType, authorityConfig) {
+  const steps = [];
+
+  // ─ Segment 1: seed → nodes 1, 2, 3 (ring path)
+  let ringCurrent = seed;
+  for (let i=1; i<=3; i++) {
+    ringCurrent = await transmitNode(ringCurrent, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: ringCurrent, nodeLabel: `Ring ${i}`, isAuthority: false, isShortcut: false });
+  }
+  // Shortcut 1: seed → single hop (bypasses ring nodes 1-3)
+  const shortcut1 = await transmitNode(seed, format, nodeType, MODELS.baseline());
+  // Junction A (node 4): synthesize ring-path end + shortcut
+  const junctionA = await callAPI(MODELS.baseline(), synthesisPrompt(ringCurrent, shortcut1, format), 0.3);
+  steps.push({ hop: 4, sentence: junctionA, nodeLabel: 'Junction A', isAuthority: false, isShortcut: true });
+
+  // ─ Segment 2: junctionA → nodes 5, 6, 7
+  ringCurrent = junctionA;
+  for (let i=5; i<=7; i++) {
+    ringCurrent = await transmitNode(ringCurrent, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: ringCurrent, nodeLabel: `Ring ${i}`, isAuthority: false, isShortcut: false });
+  }
+  // Shortcut 2: junctionA → single hop (bypasses ring nodes 5-7)
+  const shortcut2 = await transmitNode(junctionA, format, nodeType, MODELS.baseline());
+  // Junction B (node 8): synthesize ring-path end + shortcut
+  const junctionB = await callAPI(MODELS.baseline(), synthesisPrompt(ringCurrent, shortcut2, format), 0.3);
+  steps.push({ hop: 8, sentence: junctionB, nodeLabel: 'Junction B', isAuthority: false, isShortcut: true });
+
+  // ─ Segment 3: junctionB → nodes 9, 10
+  ringCurrent = junctionB;
+  for (let i=9; i<=10; i++) {
+    ringCurrent = await transmitNode(ringCurrent, format, nodeType, MODELS.baseline());
+    steps.push({ hop: i, sentence: ringCurrent, nodeLabel: `Ring ${i}`, isAuthority: false, isShortcut: false });
+  }
+  // Shortcut 3: junctionB → single hop (bypasses ring nodes 9-10)
+  const shortcut3 = await transmitNode(junctionB, format, nodeType, MODELS.baseline());
+  // Junction C (node 11): synthesize ring-path end + shortcut
+  const junctionC = await callAPI(MODELS.baseline(), synthesisPrompt(ringCurrent, shortcut3, format), 0.3);
+  steps.push({ hop: 11, sentence: junctionC, nodeLabel: 'Junction C', isAuthority: false, isShortcut: true });
+
+  return steps;
+}
+
+// ═══════════════════════════════════════
+// DISPATCHER
+// ═══════════════════════════════════════
+async function runTopology(topo, seed, format, nodeType, authorityConfig) {
+  switch(topo) {
+    case 'linear':    return runLinear(seed, format, nodeType, authorityConfig);
+    case 'hub':       return runHub(seed, format, nodeType, authorityConfig);
+    case 'lattice':   return runLattice(seed, format, nodeType, authorityConfig);
+    case 'bilattice': return runBiLattice(seed, format, nodeType, authorityConfig);
+    case 'hierarchy': return runHierarchy(seed, format, nodeType, authorityConfig);
+    case 'ring':      return runRing(seed, format, nodeType, authorityConfig);
+    default: throw new Error('Unknown topology: ' + topo);
+  }
+}
+
+// ═══════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════
+async function scoreOnce(a, b) {
+  const model  = MODELS.coder();
+  const temp   = parseFloat(document.getElementById('cod-temp').value);
+  const prompt = `Rate the semantic similarity of these two texts from 0 to 100.\n0 = completely different meanings. 100 = identical meanings.\nFocus only on meaning — ignore spelling, grammar, and format differences.\n\nText A: "${a}"\nText B: "${b}"\n\nRespond with only a single integer.`;
+  const raw = await callAPI(model, prompt, temp);
+  const s = parseInt(raw.replace(/\D/g,''));
+  return isNaN(s) ? null : Math.min(100, Math.max(0,s));
+}
+
+async function scoreN(a, b) {
+  const n = parseInt(document.getElementById('cod-reps').value);
+  const scores = [];
+  for (let i=0; i<n; i++) {
+    const s = await scoreOnce(a,b);
+    if (s !== null) scores.push(s);
+  }
+  return scores.length ? Math.round(mean(scores)) : null;
+}
+
+// Additional DVs
+async function scoreFactualRetention(seed, transmission) {
+  const model = MODELS.coder();
+  const temp  = parseFloat(document.getElementById('cod-temp').value);
+  const prompt = `You are assessing factual retention. The original seed contains specific factual details (numbers, names, dates, percentages, thresholds). Rate what proportion of those specific factual details survive intact in the transmission, from 0 to 100.\n0 = no factual details preserved. 100 = all factual details preserved exactly.\n\nOriginal seed: "${seed}"\nTransmission: "${transmission}"\n\nRespond with only a single integer from 0 to 100.`;
+  const raw = await callAPI(model, prompt, temp);
+  const s = parseInt(raw.replace(/\D/g,''));
+  return isNaN(s) ? null : Math.min(100,Math.max(0,s));
+}
+
+async function scoreCompleteness(seed, transmission) {
+  const model = MODELS.coder();
+  const temp  = parseFloat(document.getElementById('cod-temp').value);
+  const prompt = `Rate information completeness: what proportion of the semantic content from the original is preserved in the transmission?\n0 = nothing preserved. 100 = all content preserved.\nFocus on content coverage, not wording.\n\nOriginal: "${seed}"\nTransmission: "${transmission}"\n\nRespond with only a single integer from 0 to 100.`;
+  const raw = await callAPI(model, prompt, temp);
+  const s = parseInt(raw.replace(/\D/g,''));
+  return isNaN(s) ? null : Math.min(100,Math.max(0,s));
+}
+
+async function scoreDriftDirection(seed, transmission) {
+  // Returns {register: 0-100 (informal→formal), specificity: 0-100 (general→specific)}
+  const model = MODELS.coder();
+  const temp  = parseFloat(document.getElementById('cod-temp').value);
+  const prompt = `Rate two properties of the transmission relative to the original on 0-100 scales.\n\n1. Register shift: 0 = transmission is much more informal than original. 100 = transmission is much more formal than original. 50 = no change.\n2. Specificity shift: 0 = transmission is much more general/vague. 100 = transmission is much more specific/detailed. 50 = no change.\n\nOriginal: "${seed}"\nTransmission: "${transmission}"\n\nRespond with exactly two integers separated by a comma, e.g.: 45,60`;
+  const raw = await callAPI(model, prompt, temp);
+  const parts = raw.replace(/[^\d,]/g,'').split(',');
+  const reg = parseInt(parts[0]);
+  const spec = parseInt(parts[1]);
+  return {
+    register:    isNaN(reg)  ? null : Math.min(100,Math.max(0,reg)),
+    specificity: isNaN(spec) ? null : Math.min(100,Math.max(0,spec))
+  };
+}
+
+async function scoreHallucination(seed, transmission) {
+  const model = MODELS.coder();
+  const temp  = parseFloat(document.getElementById('cod-temp').value);
+  const prompt = `You are assessing hallucination in a message transmission. Rate the degree to which the transmission contains specific details, claims, or facts that are NOT present in the original, from 0 to 100.\n0 = no hallucinated content (everything stated in the transmission can be found in the original). 100 = severely hallucinated (transmission contains many fabricated details absent from the original).\nFocus on added factual content — numbers, names, dates, causal claims, events — that cannot be found in the original. Paraphrase and synonym substitution alone do not count as hallucination.\n\nOriginal: "${seed}"\nTransmission: "${transmission}"\n\nRespond with only a single integer from 0 to 100.`;
+  const raw = await callAPI(model, prompt, temp);
+  const s = parseInt(raw.replace(/\D/g,''));
+  return isNaN(s) ? null : Math.min(100,Math.max(0,s));
+}
+
+// ═══════════════════════════════════════
+// BARTLETT DISTORTION CODING
+// Applied only to Seed 7 (War of the Ghosts)
+// Codes three Bartlett (1932) distortion patterns:
+//   Leveling   — shortening / omission of detail
+//   Assimilation — schema-consistent rationalization of anomalous elements
+//   Sharpening — causal/temporal reordering toward narrative coherence
+// Returns {leveling: 0-100, assimilation: 0-100, sharpening: 0-100, word_count: n}
+// ═══════════════════════════════════════
+async function scoreBartlett(originalSeed, transmission) {
+  const model = MODELS.coder();
+  const temp  = parseFloat(document.getElementById('cod-temp').value);
+
+  const wordCount = transmission.trim().split(/\s+/).length;
+
+  const prompt = `You are coding a transmission of Bartlett's (1932) "War of the Ghosts" folk tale for three specific distortion patterns documented in human serial reproduction research.
+
+Original: "${originalSeed}"
+Transmission: "${transmission}"
+
+Rate each distortion pattern from 0 to 100:
+
+1. LEVELING (0-100): Has the transmission become shorter or simpler than the original, omitting details? 0 = same length and detail, 100 = severely shortened, most details omitted.
+
+2. ASSIMILATION (0-100): Has the transmission replaced culturally anomalous elements (e.g., "something black came out of his mouth", unexplained ghost references, causally unmotivated actions) with more culturally familiar or logically coherent alternatives? 0 = anomalous elements preserved intact, 100 = all anomalous elements replaced with schema-consistent content.
+
+3. SHARPENING (0-100): Has the transmission imposed clearer causal or temporal structure than the original, making the narrative more logically coherent even if inaccurate? 0 = original ambiguous structure preserved, 100 = strongly reordered or causally clarified.
+
+Respond with exactly three integers separated by commas, in order: leveling,assimilation,sharpening
+Example: 45,70,30`;
+
+  const raw = await callAPI(model, prompt, temp);
+  const parts = raw.replace(/[^\d,]/g,'').split(',');
+  const lev  = parseInt(parts[0]);
+  const assim = parseInt(parts[1]);
+  const sharp = parseInt(parts[2]);
+  return {
+    leveling:     isNaN(lev)   ? null : Math.min(100,Math.max(0,lev)),
+    assimilation: isNaN(assim) ? null : Math.min(100,Math.max(0,assim)),
+    sharpening:   isNaN(sharp) ? null : Math.min(100,Math.max(0,sharp)),
+    word_count:   wordCount
+  };
+}
+
+// ═══════════════════════════════════════
+// SINGLE RUN
+// ═══════════════════════════════════════
+async function runSingle() {
+  const seed = document.getElementById('single-seed').value.trim();
+  if (!seed) return alert('Enter a seed sentence');
+  if (!getApiKey()) return alert('Enter API key');
+
+  const topo      = document.getElementById('single-topo').value;
+  const nodeType  = document.getElementById('single-nodetype').value;
+  const format    = document.getElementById('single-format').value;
+  const authority = document.getElementById('single-authority').value;
+
+  const btn = document.getElementById('btn-single');
+  btn.disabled = true;
+  clearSingle();
+
+  const container = document.getElementById('chain-view');
+  container.innerHTML = '';
+
+  // Seed node
+  appendChainNode(container, 0, 'seed', seed, null, null, TOPO_SPECS[topo]?.class);
+
+  log(`Single run: ${topo} / ${nodeType} / ${format} / auth:${authority}`, 'info');
+  updateStats(topo, `${nodeType}/${format}`, null, null, null, null);
+
+  const consecScores = [];
+  const evolScores   = [];
+  singleRawData = [];
+  document.getElementById('btn-single-export').disabled = true;
+
+  try {
+    const steps = await runTopology(topo, seed, format, nodeType, authority);
+    const isBartlett = seed.trim() === BARTLETT_SEED.trim();
+
+    let prevSentSingle = seed;
+    for (const step of steps) {
+      const parentForConsec = step.parent !== undefined ? step.parent : prevSentSingle;
+      const cs = await scoreN(parentForConsec, step.sentence);
+      const es = await scoreN(seed, step.sentence);
+      const fr = await scoreFactualRetention(seed, step.sentence);
+      const co = await scoreCompleteness(seed, step.sentence);
+      const dd = await scoreDriftDirection(seed, step.sentence);
+      const ha = await scoreHallucination(seed, step.sentence);
+
+      let bartlett = { leveling: null, assimilation: null, sharpening: null, word_count: null };
+      if (isBartlett) bartlett = await scoreBartlett(seed, step.sentence);
+
+      consecScores.push(cs);
+      evolScores.push(es);
+      prevSentSingle = step.sentence;
+
+      singleRawData.push({
+        run: 'single', lineage: 1, seed_idx: isBartlett ? 7 : 1,
+        is_bartlett: isBartlett ? 1 : 0,
+        topology: topo, node_type: nodeType,
+        format, authority,
+        hop: step.hop, node_label: step.nodeLabel,
+        chain_id: step.chain_id || 'main',
+        is_authority_node: step.isAuthority ? 1 : 0,
+        is_shortcut: step.isShortcut ? 1 : 0,
+        consec_fidelity: cs, evol_fidelity: es,
+        factual_retention: fr, completeness: co,
+        register_drift: dd.register, specificity_drift: dd.specificity,
+        hallucination: ha,
+        bartlett_leveling: bartlett.leveling,
+        bartlett_assimilation: bartlett.assimilation,
+        bartlett_sharpening: bartlett.sharpening,
+        bartlett_word_count: bartlett.word_count,
+        sentence: step.sentence, seed
+      });
+
+      appendChainNode(container, step.hop, step.nodeLabel, step.sentence, cs, es, TOPO_SPECS[topo]?.class);
+      updateStats(topo, `${nodeType}/${format}`, cs, es,
+        Math.round(mean(consecScores.filter(s=>s!==null))),
+        Math.round(mean(evolScores.filter(s=>s!==null))));
+    }
+
+    renderHeatmap([evolScores]);
+    log(`Complete. Mean consec:${Math.round(mean(consecScores.filter(s=>s!==null)))} final evol:${evolScores[evolScores.length-1]}`, 'ok');
+    document.getElementById('btn-single-export').disabled = false;
+  } catch(e) {
+    log('Error: '+e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function appendChainNode(container, hop, label, text, cs, es, topoClass) {
+  const div = document.createElement('div');
+  div.className = 'chain-node' + (hop===0 ? ' seed' : '');
+  let scoreHtml = '';
+  if (cs !== null && cs !== undefined) {
+    scoreHtml = `<div class="node-scores">
+      <span class="score-num ${scoreClass(cs)}">${cs}</span>
+      <span class="score-lbl">consec</span>
+      <span class="score-num ${scoreClass(es)}" style="font-size:11px;margin-top:4px">${es??'—'}</span>
+      <span class="score-lbl">evol</span>
+    </div>`;
+  } else { scoreHtml = '<div></div>'; }
+  div.innerHTML = `
+    <div class="node-label ${topoClass||''}">${label}</div>
+    <div class="node-text">${text.slice(0,300)}${text.length>300?'…':''}</div>
+    ${scoreHtml}`;
+  container.appendChild(div);
+}
+
+function clearSingle() {
+  document.getElementById('chain-view').innerHTML =
+    '<div style="color:var(--muted);font-family:var(--mono);font-size:11px;padding:20px;text-align:center">Configure a run in Setup and press ▶ Run</div>';
+}
+
+// ═══════════════════════════════════════
+// SWEEP ENGINE
+// ═══════════════════════════════════════
+function buildSweepConditions() {
+  const topos = ['linear','hub','lattice','bilattice','hierarchy','ring']
+    .filter(t => document.getElementById('topo-'+t).checked);
+  const nodeTypes = [];
+  if (document.getElementById('cond-passive').checked) nodeTypes.push('passive');
+  if (document.getElementById('cond-active').checked)  nodeTypes.push('active');
+  const formats = [];
+  if (document.getElementById('cond-english').checked) formats.push('english');
+  if (document.getElementById('cond-pidgin').checked)  formats.push('pidgin');
+  // Hub/hierarchy: positional authority — standard vs high-capability model
+  const authsHub = [];
+  if (document.getElementById('cond-auth-std').checked)      authsHub.push('standard');
+  if (document.getElementById('cond-auth-hi').checked)       authsHub.push('high');
+
+  // Lattice/bilattice: competitive authority — standard vs implicit (quality-only) vs declared (signaled)
+  const authsSynth = [];
+  if (document.getElementById('cond-auth-std').checked)         authsSynth.push('standard');
+  if (document.getElementById('cond-auth-implicit').checked)    authsSynth.push('implicit');
+  if (document.getElementById('cond-auth-declared').checked)    authsSynth.push('declared');
+
+  const hubAuthTopos   = new Set(['hub','hierarchy']);
+  const synthAuthTopos = new Set(['lattice','bilattice']);
+
+  const conditions = [];
+  for (const topo of topos)
+    for (const nt of nodeTypes)
+      for (const fmt of formats) {
+        let relevantAuths;
+        if (hubAuthTopos.has(topo))        relevantAuths = authsHub;
+        else if (synthAuthTopos.has(topo)) relevantAuths = authsSynth;
+        else                               relevantAuths = ['standard'];
+        for (const auth of relevantAuths) {
+          conditions.push({ topo, nodeType: nt, format: fmt, authority: auth });
+        }
+      }
+  // Deduplicate
+  const seen = new Set();
+  return conditions.filter(c => {
+    const k = `${c.topo}-${c.nodeType}-${c.format}-${c.authority}`;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+}
+
+let sweepResults = [];
+
+async function runSweep() {
+  if (!getApiKey()) return alert('Enter API key');
+  const seeds = getSeeds();
+  if (!seeds.length) return alert('Add at least one seed sentence');
+  const conditions = buildSweepConditions();
+  if (!conditions.length) return alert('Select at least one condition');
+
+  const nReps  = parseInt(document.getElementById('sweep-reps').value);
+  const total  = conditions.length * seeds.length * nReps;
+
+  sweepRunning = true;
+  sweepStop    = false;
+  sweepResults = [];
+  rawData      = [];
+
+  document.getElementById('btn-sweep').disabled  = true;
+  document.getElementById('btn-stop').disabled   = false;
+  document.getElementById('btn-export').disabled = true;
+  document.getElementById('sweep-progress').style.width = '0%';
+  document.getElementById('sweep-table-wrap').innerHTML = '';
+  switchVTabByName('results');
+
+  log(`Sweep: ${conditions.length} conditions × ${seeds.length} seeds × ${nReps} reps = ${total} chains`, 'info');
+  document.getElementById('sweep-status').textContent =
+    `Running: ${conditions.length} cond × ${seeds.length} seeds × ${nReps} reps = ${total} chains`;
+
+  let done = 0;
+
+  try {
+    for (const cond of conditions) {
+      if (sweepStop) break;
+      const condKey = `${cond.topo}/${cond.nodeType}/${cond.format}/auth:${cond.authority}`;
+      const cellData = { ...cond, chains: [] };
+
+      for (const seed of seeds) {
+        if (sweepStop) break;
+        const seedIdx = seeds.indexOf(seed)+1;
+
+        for (let rep=0; rep<nReps; rep++) {
+          if (sweepStop) break;
+          runCounter++;
+          const runId = runCounter;
+          chainCount++;
+          document.getElementById('stat-chains').textContent = chainCount;
+
+          log(`${condKey} | seed ${seedIdx} | rep ${rep+1}/${nReps}`);
+
+          try {
+            const steps = await runTopology(cond.topo, seed, cond.format, cond.nodeType, cond.authority);
+            const consecScores=[], evolScores=[], factRetScores=[], complScores=[], regScores=[], specScores=[], hallScores=[];
+
+            let prevSent = seed;
+            for (const step of steps) {
+              // Use explicit parent if topology defines it (parallel fan-out nodes);
+              // fall back to prevSent for sequential topologies (linear, ring).
+              const parentForConsec = step.parent !== undefined ? step.parent : prevSent;
+              const cs = await scoreN(parentForConsec, step.sentence);
+              const es = await scoreN(seed, step.sentence);
+              const fr = await scoreFactualRetention(seed, step.sentence);
+              const co = await scoreCompleteness(seed, step.sentence);
+              const dd = await scoreDriftDirection(seed, step.sentence);
+              const ha = await scoreHallucination(seed, step.sentence);
+
+              consecScores.push(cs);
+              evolScores.push(es);
+              factRetScores.push(fr);
+              complScores.push(co);
+              regScores.push(dd.register);
+              specScores.push(dd.specificity);
+              hallScores.push(ha);
+              prevSent = step.sentence;
+
+              // Bartlett coding — only for Seed 7 (War of the Ghosts)
+              const isBartlett = seed.trim() === BARTLETT_SEED.trim();
+              let bartlett = { leveling: null, assimilation: null, sharpening: null, word_count: null };
+              if (isBartlett) {
+                bartlett = await scoreBartlett(seed, step.sentence);
+              }
+
+              rawData.push({
+                run: runId, lineage: rep+1, seed_idx: seedIdx,
+                is_bartlett: isBartlett ? 1 : 0,
+                topology: cond.topo, node_type: cond.nodeType,
+                format: cond.format, authority: cond.authority,
+                hop: step.hop, node_label: step.nodeLabel,
+                chain_id: step.chain_id || 'main',
+                is_authority_node: step.isAuthority ? 1 : 0,
+                is_shortcut: step.isShortcut ? 1 : 0,
+                consec_fidelity: cs, evol_fidelity: es,
+                factual_retention: fr, completeness: co,
+                register_drift: dd.register, specificity_drift: dd.specificity,
+                hallucination: ha,
+                bartlett_leveling: bartlett.leveling,
+                bartlett_assimilation: bartlett.assimilation,
+                bartlett_sharpening: bartlett.sharpening,
+                bartlett_word_count: bartlett.word_count,
+                sentence: step.sentence, seed
+              });
+            }
+
+            cellData.chains.push({ consecScores, evolScores, factRetScores, complScores, hallScores });
+            renderHeatmap([evolScores]);
+
+            const lastEvol = evolScores.filter(s=>s!==null);
+            updateStats(cond.topo, `${cond.nodeType}/${cond.format}`,
+              consecScores[consecScores.length-1],
+              lastEvol[lastEvol.length-1],
+              Math.round(mean(consecScores.filter(s=>s!==null))),
+              Math.round(mean(evolScores.filter(s=>s!==null))));
+
+          } catch(e) {
+            log(`Error in chain: ${e.message}`, 'err');
+          }
+
+          done++;
+          document.getElementById('sweep-progress').style.width = (done/total*100).toFixed(1)+'%';
+          document.getElementById('sweep-status').textContent =
+            `${done}/${total} chains — ${condKey}`;
+          await new Promise(r=>setTimeout(r,0));
+        }
+      }
+
+      // Aggregate condition cell
+      const allConsec  = cellData.chains.flatMap(c=>c.consecScores.filter(s=>s!==null));
+      const allEvol    = cellData.chains.flatMap(c=>c.evolScores.filter(s=>s!==null));
+      const allFact    = cellData.chains.flatMap(c=>c.factRetScores.filter(s=>s!==null));
+      const allCompl   = cellData.chains.flatMap(c=>c.complScores.filter(s=>s!==null));
+      const allHall    = cellData.chains.flatMap(c=>c.hallScores.filter(s=>s!==null));
+      const finalEvols = cellData.chains.map(c=>{
+        const e=c.evolScores.filter(s=>s!==null); return e.length?e[e.length-1]:null;
+      }).filter(s=>s!==null);
+
+      sweepResults.push({
+        ...cond, condKey,
+        n_chains: cellData.chains.length,
+        mean_consec:  mean(allConsec).toFixed(1),
+        mean_evol:    mean(allEvol).toFixed(1),
+        final_evol:   mean(finalEvols).toFixed(1),
+        xl_sd:        sd(finalEvols).toFixed(1),
+        mean_factret: mean(allFact).toFixed(1),
+        mean_compl:   mean(allCompl).toFixed(1),
+        mean_hall:    mean(allHall).toFixed(1),
+      });
+
+      renderSweepTable();
+    }
+  } finally {
+    document.getElementById('btn-sweep').disabled  = false;
+    document.getElementById('btn-stop').disabled   = true;
+    document.getElementById('btn-export').disabled = sweepResults.length === 0;
+    document.getElementById('sweep-progress').style.width = '100%';
+    log(`Sweep complete. ${sweepResults.length} conditions, ${chainCount} chains, ${rawData.length} observations.`, 'ok');
+  }
+}
+
+function stopSweep() {
+  sweepStop = true;
+  document.getElementById('btn-stop').disabled = true;
+  log('Stop requested.', 'warn');
+}
+
+// ═══════════════════════════════════════
+// RESULTS TABLE
+// ═══════════════════════════════════════
+function renderSweepTable() {
+  const wrap = document.getElementById('sweep-table-wrap');
+  if (!sweepResults.length) return;
+  wrap.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:8px">${sweepResults.length} conditions completed</div>
+    <table>
+      <thead><tr>
+        <th>Topology</th><th>Node type</th><th>Format</th><th>Authority</th>
+        <th>Chains</th><th>Mean consec</th><th>Mean evol</th><th>Final evol</th>
+        <th>XL SD</th><th>Fact ret</th><th>Completeness</th><th>Hallucination</th>
+      </tr></thead>
+      <tbody>
+        ${sweepResults.map(r=>`<tr>
+          <td class="${'topo-'+r.topo}">${TOPO_SPECS[r.topo]?.label||r.topo}</td>
+          <td>${r.nodeType}</td><td>${r.format}</td><td>${r.authority}</td>
+          <td>${r.n_chains}</td>
+          <td>${r.mean_consec}</td><td>${r.mean_evol}</td><td>${r.final_evol}</td>
+          <td>${r.xl_sd}</td><td>${r.mean_factret}</td><td>${r.mean_compl}</td><td>${r.mean_hall}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════
+// RAW DATA TABLE
+// ═══════════════════════════════════════
+function renderRawTable() {
+  const wrap = document.getElementById('raw-table-wrap');
+  if (!rawData.length) { wrap.innerHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:11px;padding:20px">No data yet.</div>'; return; }
+  const cols = ['run','lineage','seed_idx','is_bartlett','topology','node_type','format','authority','hop','node_label',
+    'chain_id','is_authority_node','is_shortcut',
+    'consec_fidelity','evol_fidelity','factual_retention','completeness',
+    'register_drift','specificity_drift','hallucination',
+    'bartlett_leveling','bartlett_assimilation','bartlett_sharpening','bartlett_word_count',
+    'sentence','seed'];
+  wrap.innerHTML = `<table>
+    <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${rawData.slice(-200).map(r=>`<tr>${cols.map(c=>`<td title="${(r[c]||'').toString().slice(0,200)}">${(r[c]||'').toString().slice(0,40)}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px">Showing last 200 of ${rawData.length} rows.</div>`;
+}
+
+// ═══════════════════════════════════════
+// CSV EXPORT
+// ═══════════════════════════════════════
+function exportCSV() {
+  if (!rawData.length) return;
+  const cols = ['run','lineage','seed_idx','is_bartlett','topology','node_type','format','authority','hop','node_label',
+    'chain_id','is_authority_node','is_shortcut',
+    'consec_fidelity','evol_fidelity','factual_retention','completeness',
+    'register_drift','specificity_drift','hallucination',
+    'bartlett_leveling','bartlett_assimilation','bartlett_sharpening','bartlett_word_count',
+    'sentence','seed'];
+  const rows = rawData.map(r=>cols.map(c=>`"${(r[c]??'').toString().replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob([[cols.join(',')+'\n'+rows.join('\n')]], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `m2m_mutation_${Date.now()}.csv`;
+  a.click();
+  log('CSV exported.', 'ok');
+}
+
+function exportSingleCSV() {
+  if (!singleRawData.length) return;
+  const cols = ['run','lineage','seed_idx','is_bartlett','topology','node_type','format','authority','hop','node_label',
+    'chain_id','is_authority_node','is_shortcut',
+    'consec_fidelity','evol_fidelity','factual_retention','completeness',
+    'register_drift','specificity_drift','hallucination',
+    'bartlett_leveling','bartlett_assimilation','bartlett_sharpening','bartlett_word_count',
+    'sentence','seed'];
+  const rows = singleRawData.map(r=>cols.map(c=>`"${(r[c]??'').toString().replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob([[cols.join(',')+'\n'+rows.join('\n')]], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  const r = singleRawData[0];
+  const paramStr = `${r.topology}_${r.node_type}_${r.format}_${r.authority}`;
+  a.download = `m2m_single_${dateStr}_${paramStr}.csv`;
+  a.click();
+  log('Single run CSV exported.', 'ok');
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+loadDefaultSeeds(); // All 7 seeds
+log('M2M Information Mutation V2 — Extended Exploration ready.', 'ok');
+log('Six topologies: linear, hub-and-spoke, lattice, bidirectional lattice, directed hierarchy, ring with shortcuts.', 'info');
+log('Eight DVs: consec fidelity, evol fidelity, XL-SD, factual retention, completeness, register drift, specificity drift, hallucination.', 'info');
+log('Seven seeds: 6 organizational (factual/normative/narrative/procedural) + Seed 7 (Bartlett 1932 War of the Ghosts).', 'info');
+log('Bartlett coding (leveling, assimilation, sharpening) applied automatically to Seed 7 only.', 'warn');
+log('Hub-and-spoke: all 10 spokes independently receive hub output (parallel fan-out). Within-chain spoke divergence computable from raw data.', 'info');
+log('Ring with shortcuts: 3 ring segments + 3 junction nodes. Each junction synthesizes ring-path and shortcut inputs.', 'info');
+log('Machine authority: hub/hierarchy → standard vs high-capability model (positional). Lattice/bilattice → standard vs implicit (quality-only, no signal) vs declared (explicit capability signal to synthesis node).', '');
+log('V2 EXTENDED EXPLORATION: active mediation · 5 reps · 7 seeds · English + Pidgin. Goal: validate pilot findings, settle format question, stress-test bilattice authority contrast.', 'warn');
+</script>
+</body>
+</html>
