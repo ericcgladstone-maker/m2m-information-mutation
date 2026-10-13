@@ -1,6 +1,7 @@
 # M2M Information Mutation Simulation
 
 > **Status.** This repository is an early development snapshot of the simulation work behind Gladstone, E. & Brashears, M. E., *Information mutation across implemented AI-agent communication architectures*, revise and resubmit at *Scientific Reports*. Author's manuscript: https://graystoneindustries.co/papers/communication-architecture-shapes-information-mutation-in-ai-agent-networks.pdf . The manuscript's dataset (5,880 scored outputs from 420 chains), production simulation (`simulations/m2m_v2.html`), revision analysis scripts, independent-recoding runner, and statistical audit are deposited on the Open Science Framework, DOI 10.17605/OSF.IO/J2ZDU. Where this snapshot and the OSF deposit differ, the OSF deposit is authoritative.
+
 **Version:** V1  
 **File:** `m2m_v1.html`  
 **Paper:** Gladstone & Brashears — *Information mutation across implemented AI-agent communication architectures* (revise and resubmit, *Scientific Reports*)
