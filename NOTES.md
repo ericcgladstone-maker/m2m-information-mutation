@@ -21,7 +21,7 @@ A staging area for a clean GitHub presentation of the M2M Information Mutation s
 - `figures/figure_1_topology_error_profile.png` — final figure asset.
 - `references/Gladstone & Brashears — Error Correction Mechanisms M2M.pdf` — companion paper PDF.
 - `dev_notes/` — Markdown dev notes (`M2M Information Mutation — Dev Log.md`, `M2M Information Mutation — Handoff Note.md`, `M2M Information Mutation — Pilot Analysis Report.md`).
-- `submission_materials/social_networks/` — Markdown source for the *Social Networks* submission bundle (title page, blinded manuscript, highlights, declarations, cover letter, data availability statement, figures).
+- `submission_materials/social_networks/` — Markdown source for the earlier *Social Networks* submission bundle, retained as history (the current version is revise and resubmit at *Scientific Reports*) (title page, blinded manuscript, highlights, declarations, cover letter, data availability statement, figures).
 
 ## What was deliberately excluded
 

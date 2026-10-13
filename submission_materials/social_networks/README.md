@@ -1,5 +1,7 @@
 # Social Networks submission package
 
+> **Historical.** These are the materials for an earlier submission of a prior version of this study to *Social Networks*. The affiliations and title reflect that submission. The current version is *Information mutation across implemented AI-agent communication architectures*, revise and resubmit at *Scientific Reports*.
+
 **Manuscript:** "The Modern Telephone: Information Mutation in Machine-to-Machine Communication Networks"
 **Authors:** Eric Gladstone (U. Kentucky) & Matthew E. Brashears (U. South Carolina)
 **Target journal:** *Social Networks* (Elsevier; double-anonymized review)
